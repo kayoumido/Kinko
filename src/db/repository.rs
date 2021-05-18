@@ -23,7 +23,6 @@ impl UserRepository for PostgrSQLUserRepository {
     fn get_user(&self, usrname: &str) -> Result<User, DBError> {
         let conn = connection()?;
 
-        // let res = users.filter( username.eq)
         let res = users.filter(username.eq(usrname)).first::<User>(&conn);
 
         if let Err(_) = res {
