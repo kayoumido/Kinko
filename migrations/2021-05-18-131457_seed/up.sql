@@ -1,0 +1,1 @@
+insert into users (username, public_key, shared_secret, shared_secret_salt) values ('AliceXOXO', 'mqtTAXy90PtxzPEgydY1xcM6VadjD2z6dyMz/cN3nTQ=', 'CpP6H2YRfRSStCBwmmB7eAI00rlZCeOKmNXlZ7DyIVY=', 'esM6awwBCndMbzph6SvwXggvsE0B38742FU8lokT2P8=');
