@@ -1,0 +1,18 @@
+version: "3.8"
+
+services:
+  kinko_db:
+    container_name: kinko_db
+    image: postgres:13-alpine
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: bob
+      POSTGRES_PASSWORD: IL0v34lIc3
+      POSTGRES_DB: kinko
+    #   APP_DB_USER: bob
+    #   APP_DB_PASS: IL0v34lIc3
+    #   APP_DB_NAME: kinko
+    volumes:
+      - ./db_data:/var/lib/postgresql/data\
