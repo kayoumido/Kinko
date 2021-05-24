@@ -68,9 +68,8 @@ The file encryption will be done using **AES-GCM** and to guarantee longterm sec
 <img src="docs/file_encryption.png" width="500">
 </p>
 
-> (1) file encryption
->
-> (2) key encryption
+> (1) File encryption
+> (2) Key encryption
 
 ### File download
 
@@ -89,6 +88,9 @@ The decryption is pretty straight forward. The symmetric key is decrypted using 
 <p align="center">
 <img src="docs/file_decryption.png" width="500">
 </p>
+
+> (1) Key decryption
+> (2) File encryption
 
 ### File sharing
 
