@@ -1,5 +1,6 @@
 use super::connection;
 use super::models::*;
+use super::schema::files::dsl::*;
 use super::schema::users::dsl::*;
 use diesel::prelude::*;
 
@@ -27,6 +28,28 @@ impl UserRepository for PostgrSQLUserRepository {
 
         if let Err(_) = res {
             Err(DBError::UserNotFound)
+        } else {
+            Ok(res.unwrap())
+        }
+    }
+}
+
+pub trait FileRepository {
+    // fn create_file(&self, file: &NewFile) -> Result<User, DBError>;
+    fn get_user_files(&self, ownerid: i32) -> Result<Vec<File>, DBError>;
+    // fn get_user(&self, uname: &str) -> Result<User, DBError>;
+}
+
+pub struct PostgrSQLFileRepository {}
+
+impl FileRepository for PostgrSQLFileRepository {
+    fn get_user_files(&self, ownerid: i32) -> Result<Vec<File>, DBError> {
+        let conn = connection()?;
+
+        let res = files.filter(owner_id.eq(ownerid)).load::<File>(&conn);
+
+        if let Err(_) = res {
+            Err(DBError::NoFiles)
         } else {
             Ok(res.unwrap())
         }
