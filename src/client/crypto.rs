@@ -13,8 +13,8 @@ use sodiumoxide::crypto::secretbox;
 use sodiumoxide::randombytes;
 
 ///
-pub fn compute_shared_secret(passwd: &str, salt: &str) -> Vec<u8> {
-    let salt = Salt::from_slice(salt.as_bytes()).unwrap();
+pub fn compute_shared_secret(passwd: &str, salt: &[u8]) -> Vec<u8> {
+    let salt = Salt::from_slice(salt).unwrap();
 
     let mut key = [0u8; secretbox::KEYBYTES];
 
