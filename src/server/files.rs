@@ -37,8 +37,9 @@ pub fn get_my_files(username: &str, challenge: &[u8], tag: &[u8]) -> Vec<String>
 pub fn post_file(
     username: &str,
     filename: &str,
-    file_secret: &[u8],
-    file_nonce: &[u8],
+    symmetric_key: &str,
+    content_nonce: &str,
+    name_nonce: &str,
     challenge: &[u8],
     tag: &[u8],
 ) -> Result<(), FileError> {
@@ -50,13 +51,11 @@ pub fn post_file(
     let frepo = PostgrSQLFileRepository {};
     let user = urepo.get_user(username).unwrap();
 
-    let symmetric_key = base64::encode(file_secret);
-    let nonce = base64::encode(file_nonce);
-
     let new_file = NewFile {
         name: filename,
-        symmetric_key: symmetric_key.as_str(),
-        nonce: nonce.as_str(),
+        symmetric_key,
+        content_nonce,
+        name_nonce,
         owner_id: user.id,
     };
 
