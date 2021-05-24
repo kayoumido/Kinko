@@ -36,7 +36,7 @@ pub fn sign_token(token: &[u8], secret: &[u8]) -> Vec<u8> {
     state.finalize().as_ref().to_vec()
 }
 
-pub fn encrypt_file(filename: &str) -> (Vec<u8>, Vec<u8>) {
+pub fn encrypt_file(filename: &str) -> (String, Vec<u8>, Vec<u8>) {
     // open the file and get it's contents
     let path = Path::new(filename);
     let file = match File::open(&path) {
@@ -80,7 +80,7 @@ pub fn encrypt_file(filename: &str) -> (Vec<u8>, Vec<u8>) {
     }
 
     // return the key underwhich the file was encrypted and the nounce used
-    (key.as_ref().to_vec(), n)
+    (enc_name, key.as_ref().to_vec(), n)
 }
 
 pub fn decrypt_file(filename: &str, key: &[u8], nonce: &[u8]) {
