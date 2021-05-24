@@ -62,14 +62,14 @@ pub fn encrypt_file(filepath: &str) -> (String, Vec<u8>, Vec<u8>, Vec<u8>) {
     // encrypt the filename using the same key
     let (cipher_name, name_nonce) = _encrypt(fileanme.as_ref(), key.as_ref());
 
-    let display_name = base64::encode(cipher_name.as_slice());
+    let display_name = base64::encode_config(cipher_name.as_slice(), base64::URL_SAFE);
     let encrypted_path = String::from(parent) + "/" + display_name.as_str();
 
     let enc_path = Path::new(&encrypted_path);
 
     // Open a file in write-only mode, returns `io::Result<File>`
     let mut file = match File::create(&enc_path) {
-        Err(why) => panic!("couldn't create: {}", why),
+        Err(why) => panic!("couldn't create: {}, {:?}", why, enc_path),
         Ok(file) => file,
     };
 
