@@ -80,15 +80,27 @@ pub fn download_file(
     if let Err(_) = file {}
     let file = file.unwrap();
 
-    let enc_file_secret = base64::decode(file.symmetric_key).unwrap();
+    // decode all the needed info for the file decryption
+    let encrypted_file_secret = base64::decode(file.symmetric_key).unwrap();
     let file_nonce = base64::decode(file.content_nonce).unwrap();
-    let file_secret = crypto::decrypt_key(enc_file_secret.as_ref(), sk);
+    let name_nonce = base64::decode(file.name_nonce).unwrap();
 
-    let enc_file_path: &str = &(String::from("files/share/") + filename);
-    let dec_file_path = String::from("files/home/") + filename + ".unlocked";
-    crypto::decrypt_file(&enc_file_path, file_secret.as_ref(), file_nonce.as_ref());
+    // decrypt the key used for encryption
+    let file_secret = crypto::decrypt_key(encrypted_file_secret.as_ref(), sk);
 
-    let _r = fs::remove_file(enc_file_path);
+    let encrypted_file_from = String::from("files/share/") + filename;
 
-    fs::rename(enc_file_path.to_string() + ".unlocked", dec_file_path).unwrap();
+    let decrypted_file_name = crypto::decrypt_file(
+        encrypted_file_from.as_str(),
+        file_secret.as_ref(),
+        file_nonce.as_ref(),
+        name_nonce.as_ref(),
+    );
+
+    let decrypted_file_from = String::from("files/share/") + decrypted_file_name.as_str();
+    let decrypted_file_to = String::from("files/home/") + decrypted_file_name.as_str();
+
+    let _r = fs::remove_file(encrypted_file_from);
+
+    fs::rename(decrypted_file_from, decrypted_file_to).unwrap();
 }

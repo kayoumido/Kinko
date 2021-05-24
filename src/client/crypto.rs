@@ -6,7 +6,7 @@ use std::{fs::File, io::BufRead, io::BufReader};
 use aes_gcm::aead::{generic_array::GenericArray, Aead, NewAead};
 use aes_gcm::Aes256Gcm;
 
-use ecies::{decrypt, encrypt};
+use ecies;
 
 use sodiumoxide::crypto::auth;
 use sodiumoxide::crypto::kdf;
@@ -73,7 +73,6 @@ pub fn encrypt_file(filepath: &str) -> (String, Vec<u8>, Vec<u8>, Vec<u8>) {
         Ok(file) => file,
     };
 
-    // Write the `LOREM_IPSUM` string to `file`, returns `io::Result<()>`
     match file.write_all(cipher_content.as_ref()) {
         Err(why) => panic!("couldn't write to: {}", why),
         Ok(_) => (),
@@ -88,9 +87,8 @@ pub fn encrypt_file(filepath: &str) -> (String, Vec<u8>, Vec<u8>, Vec<u8>) {
     )
 }
 
-pub fn decrypt_file(filename: &str, key: &[u8], nonce: &[u8]) {
+pub fn decrypt_file(filename: &str, key: &[u8], nonce: &[u8], name_nonce: &[u8]) -> String {
     let path = Path::new(filename);
-    println!("{:?}", path);
     let mut file = match File::open(&path) {
         Err(why) => panic!("couldn't read file {}", why),
         Ok(file) => file,
@@ -102,42 +100,41 @@ pub fn decrypt_file(filename: &str, key: &[u8], nonce: &[u8]) {
         panic!("Couldn't read encrypted file: {}", why);
     }
 
-    let key = GenericArray::clone_from_slice(key);
-    let nonce = GenericArray::clone_from_slice(nonce);
-    let cipher = Aes256Gcm::new(&key);
-
-    let decrypted = cipher.decrypt(&nonce, contents.as_ref());
-    if let Err(why) = decrypted {
-        print!("{}", why);
-    }
-
-    let decrypted = decrypted.unwrap();
+    let decrypted = _decrypt(contents.as_ref(), key, nonce);
     let plaintext = str::from_utf8(decrypted.as_slice()).unwrap();
 
-    let enc_name = String::from(filename) + ".unlocked";
-    let enc_path = Path::new(&enc_name);
+    let filename = path.file_name().unwrap().to_str().unwrap();
+    let parent = path.parent().unwrap().to_str().unwrap();
+
+    // decrypt de filename
+    let encrypted_filename = base64::decode_config(filename, base64::URL_SAFE).unwrap();
+    let og_name = _decrypt(encrypted_filename.as_ref(), key, name_nonce);
+    let new_name = String::from("dec_") + str::from_utf8(og_name.as_ref()).unwrap();
+
+    let decrypted_file_to = String::from(parent) + "/" + new_name.as_str();
 
     // Open a file in write-only mode, returns `io::Result<File>`
-    let mut file = match File::create(&enc_path) {
+    let mut file = match File::create(decrypted_file_to.as_str()) {
         Err(why) => panic!("couldn't create: {}", why),
         Ok(file) => file,
     };
 
-    // Write the `LOREM_IPSUM` string to `file`, returns `io::Result<()>`
     match file.write_all(plaintext.as_ref()) {
         Err(why) => panic!("couldn't write to: {}", why),
         Ok(_) => (),
     }
+
+    new_name
 }
 
 pub fn encrypt_key(secret: &[u8], pk: &[u8]) -> Vec<u8> {
-    let enc_key = encrypt(pk, secret);
+    let enc_key = ecies::encrypt(pk, secret);
 
     enc_key.unwrap()
 }
 
 pub fn decrypt_key(enc_secret: &[u8], pk: &[u8]) -> Vec<u8> {
-    let key = decrypt(pk, enc_secret);
+    let key = ecies::decrypt(pk, enc_secret);
 
     key.unwrap()
 }
@@ -150,10 +147,21 @@ fn _encrypt(plaintext: &[u8], key: &[u8]) -> (Vec<u8>, Vec<u8>) {
 
     // generate random nonce
     let n = randombytes::randombytes(12);
-    let nonce = GenericArray::from_slice(n.as_ref()); // 96-bits; unique per message
+    let nonce = GenericArray::from_slice(n.as_ref());
 
     // encrypt the contents of the file
     let ciphertext = cipher.encrypt(nonce, plaintext).unwrap();
 
     (ciphertext, n)
+}
+
+fn _decrypt(ciphertext: &[u8], key: &[u8], nonce: &[u8]) -> Vec<u8> {
+    // convert key & nonce to a GenericArray
+    let sym_key = GenericArray::clone_from_slice(key);
+    let nonce = GenericArray::from_slice(nonce);
+    // create new cipher for encryption
+    let cipher = Aes256Gcm::new(&sym_key);
+
+    // decrypt the contents of the file
+    cipher.decrypt(&nonce, ciphertext).unwrap()
 }
