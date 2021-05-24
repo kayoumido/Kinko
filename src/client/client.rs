@@ -42,13 +42,14 @@ pub fn upload_file(
     session_token: &[u8],
     pk: &[u8],
 ) {
-    let (enc_filename, file_secret, nonce) = crypto::encrypt_file(filename);
+    let (encrypted_file_name, file_secret, content_nonce, _filename_nonce) =
+        crypto::encrypt_file(filename);
 
-    let enc_file: &str = &(String::from("files/share/") + &enc_filename);
+    let enc_file: &str = &(String::from("files/share/") + &encrypted_file_name);
     let enc_secret = crypto::encrypt_key(&file_secret, pk);
     let session_tag = crypto::sign_token(session_token, shared_secret);
 
-    fs::rename(String::from("files/home/") + &enc_filename, enc_file).unwrap();
+    fs::rename(String::from("files/home/") + &encrypted_file_name, enc_file).unwrap();
 
     let enc_filename = Path::new(&enc_file).file_name().unwrap().to_str().unwrap();
 
@@ -56,7 +57,7 @@ pub fn upload_file(
         username,
         enc_filename,
         enc_secret.as_ref(),
-        nonce.as_ref(),
+        content_nonce.as_ref(),
         session_token,
         session_tag.as_ref(),
     ) {}

@@ -38,9 +38,9 @@ pub fn sign_token(token: &[u8], secret: &[u8]) -> Vec<u8> {
     state.finalize().as_ref().to_vec()
 }
 
-pub fn encrypt_file(filename: &str) -> (String, Vec<u8>, Vec<u8>) {
+pub fn encrypt_file(filepath: &str) -> (String, Vec<u8>, Vec<u8>, Vec<u8>) {
     // open the file and get it's contents
-    let path = Path::new(filename);
+    let path = Path::new(filepath);
     let file = match File::open(&path) {
         Err(why) => panic!("couldn't read file {}", why),
         Ok(file) => file,
@@ -50,24 +50,22 @@ pub fn encrypt_file(filename: &str) -> (String, Vec<u8>, Vec<u8>) {
 
     // generate a symetric key for the encryption
     let key = kdf::gen_key();
-    let sym_key = GenericArray::clone_from_slice(key.as_ref());
-
-    // create new cipher for encryption
-    let cipher = Aes256Gcm::new(&sym_key);
-
-    // generate random nonce
-    let n = randombytes::randombytes(12);
-    let nonce = GenericArray::from_slice(n.as_ref()); // 96-bits; unique per message
-
     // encrypt the contents of the file
-    let ciphertext = cipher.encrypt(nonce, contents.as_ref()).unwrap();
+    let (cipher_content, content_nonce) = _encrypt(&contents.as_ref(), key.as_ref());
 
     // now we can write the encrypted contents in a new file
 
-    // cipher the name for more security?
-    let enc_name = String::from(filename) + ".locked";
+    // get the filename and the parent
+    let fileanme = path.file_name().unwrap().to_str().unwrap();
+    let parent = path.parent().unwrap().to_str().unwrap();
 
-    let enc_path = Path::new(&enc_name);
+    // encrypt the filename using the same key
+    let (cipher_name, name_nonce) = _encrypt(fileanme.as_ref(), key.as_ref());
+
+    let display_name = base64::encode(cipher_name.as_slice());
+    let encrypted_path = String::from(parent) + "/" + display_name.as_str();
+
+    let enc_path = Path::new(&encrypted_path);
 
     // Open a file in write-only mode, returns `io::Result<File>`
     let mut file = match File::create(&enc_path) {
@@ -76,13 +74,18 @@ pub fn encrypt_file(filename: &str) -> (String, Vec<u8>, Vec<u8>) {
     };
 
     // Write the `LOREM_IPSUM` string to `file`, returns `io::Result<()>`
-    match file.write_all(ciphertext.as_ref()) {
+    match file.write_all(cipher_content.as_ref()) {
         Err(why) => panic!("couldn't write to: {}", why),
         Ok(_) => (),
     }
-    let enc_name = Path::new(&enc_name).file_name().unwrap().to_str().unwrap();
+
     // return the key underwhich the file was encrypted and the nounce used
-    (enc_name.to_string(), key.as_ref().to_vec(), n)
+    (
+        display_name,
+        key.as_ref().to_vec(),
+        content_nonce,
+        name_nonce,
+    )
 }
 
 pub fn decrypt_file(filename: &str, key: &[u8], nonce: &[u8]) {
@@ -137,4 +140,20 @@ pub fn decrypt_key(enc_secret: &[u8], pk: &[u8]) -> Vec<u8> {
     let key = decrypt(pk, enc_secret);
 
     key.unwrap()
+}
+
+fn _encrypt(plaintext: &[u8], key: &[u8]) -> (Vec<u8>, Vec<u8>) {
+    // convert key to a GenericArray
+    let sym_key = GenericArray::clone_from_slice(key);
+    // create new cipher for encryption
+    let cipher = Aes256Gcm::new(&sym_key);
+
+    // generate random nonce
+    let n = randombytes::randombytes(12);
+    let nonce = GenericArray::from_slice(n.as_ref()); // 96-bits; unique per message
+
+    // encrypt the contents of the file
+    let ciphertext = cipher.encrypt(nonce, plaintext).unwrap();
+
+    (ciphertext, n)
 }
