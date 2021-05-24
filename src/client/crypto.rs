@@ -6,6 +6,8 @@ use std::{fs::File, io::BufRead, io::BufReader};
 use aes_gcm::aead::{generic_array::GenericArray, Aead, NewAead};
 use aes_gcm::Aes256Gcm;
 
+use ecies::{decrypt, encrypt};
+
 use sodiumoxide::crypto::auth;
 use sodiumoxide::crypto::kdf;
 use sodiumoxide::crypto::pwhash::{self, Salt};
@@ -78,9 +80,9 @@ pub fn encrypt_file(filename: &str) -> (String, Vec<u8>, Vec<u8>) {
         Err(why) => panic!("couldn't write to: {}", why),
         Ok(_) => (),
     }
-
+    let enc_name = Path::new(&enc_name).file_name().unwrap().to_str().unwrap();
     // return the key underwhich the file was encrypted and the nounce used
-    (enc_name, key.as_ref().to_vec(), n)
+    (enc_name.to_string(), key.as_ref().to_vec(), n)
 }
 
 pub fn decrypt_file(filename: &str, key: &[u8], nonce: &[u8]) {
@@ -116,6 +118,11 @@ pub fn decrypt_file(filename: &str, key: &[u8], nonce: &[u8]) {
     }
 }
 
+pub fn encrypt_key(secret: &[u8], pk: &[u8]) -> Vec<u8> {
+    let enc_key = encrypt(pk, secret);
+
+    enc_key.unwrap()
+}
 // let key = randombytes::randombytes(123);
 
 // let data_part_1 = b"some data";
