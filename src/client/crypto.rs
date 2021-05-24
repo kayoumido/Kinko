@@ -1,17 +1,23 @@
-use sodiumoxide::crypto::auth::{self, Tag};
+use std::io::prelude::*;
+use std::path::Path;
+use std::str;
+use std::{fs::File, io::BufRead, io::BufReader};
+
+use aes_gcm::aead::{generic_array::GenericArray, Aead, NewAead};
+use aes_gcm::Aes256Gcm;
+
+use sodiumoxide::crypto::auth;
+use sodiumoxide::crypto::kdf;
 use sodiumoxide::crypto::pwhash::{self, Salt};
 use sodiumoxide::crypto::secretbox;
+use sodiumoxide::randombytes;
 
 ///
-fn compute_shared_secret(passwd: &str, salt: &str) -> Vec<u8> {
-    // let mut k = secretbox::Key([0; secretbox::KEYBYTES]);
+pub fn compute_shared_secret(passwd: &str, salt: &str) -> Vec<u8> {
     let salt = Salt::from_slice(salt.as_bytes()).unwrap();
 
     let mut key = [0u8; secretbox::KEYBYTES];
-    // argon2id13::derive_key(&mut key, password.as_bytes(), &salt,
-    //     argon2id13::OPSLIMIT_INTERACTIVE,
-    //     argon2id13::MEMLIMIT_INTERACTIVE).unwrap();
-    // let secretbox::Key(ref mut kb) = k;
+
     pwhash::derive_key(
         &mut key,
         passwd.as_bytes(),
@@ -24,10 +30,90 @@ fn compute_shared_secret(passwd: &str, salt: &str) -> Vec<u8> {
 }
 
 ///
-fn sign_session_token(token: &[u8], secret: &[u8]) -> Vec<u8> {
+pub fn sign_token(token: &[u8], secret: &[u8]) -> Vec<u8> {
     let mut state = auth::State::init(secret);
     state.update(token);
     state.finalize().as_ref().to_vec()
+}
+
+pub fn encrypt_file(filename: &str) -> (Vec<u8>, Vec<u8>) {
+    // open the file and get it's contents
+    let path = Path::new(filename);
+    let file = match File::open(&path) {
+        Err(why) => panic!("couldn't read file {}", why),
+        Ok(file) => file,
+    };
+    let reader = BufReader::new(file);
+    let contents: String = reader.lines().map(|l| l.unwrap()).collect();
+
+    // generate a symetric key for the encryption
+    let key = kdf::gen_key();
+    let sym_key = GenericArray::clone_from_slice(key.as_ref());
+
+    // create new cipher for encryption
+    let cipher = Aes256Gcm::new(&sym_key);
+
+    // generate random nonce
+    let n = randombytes::randombytes(12);
+    let nonce = GenericArray::from_slice(n.as_ref()); // 96-bits; unique per message
+
+    // encrypt the contents of the file
+    let ciphertext = cipher.encrypt(nonce, contents.as_ref()).unwrap();
+
+    // now we can write the encrypted contents in a new file
+
+    // cipher the name for more security?
+    let enc_name = String::from(filename) + ".locked";
+
+    let enc_path = Path::new(&enc_name);
+
+    // Open a file in write-only mode, returns `io::Result<File>`
+    let mut file = match File::create(&enc_path) {
+        Err(why) => panic!("couldn't create: {}", why),
+        Ok(file) => file,
+    };
+
+    // Write the `LOREM_IPSUM` string to `file`, returns `io::Result<()>`
+    match file.write_all(ciphertext.as_ref()) {
+        Err(why) => panic!("couldn't write to: {}", why),
+        Ok(_) => (),
+    }
+
+    // return the key underwhich the file was encrypted and the nounce used
+    (key.as_ref().to_vec(), n)
+}
+
+pub fn decrypt_file(filename: &str, key: &[u8], nonce: &[u8]) {
+    let path = Path::new(filename);
+    let file = match File::open(&path) {
+        Err(why) => panic!("couldn't read file {}", why),
+        Ok(file) => file,
+    };
+    let reader = BufReader::new(file);
+    let contents: String = reader.lines().map(|l| l.unwrap()).collect();
+
+    let key = GenericArray::clone_from_slice(key);
+    let nonce = GenericArray::clone_from_slice(nonce);
+
+    let cipher = Aes256Gcm::new(&key);
+
+    let decrypted = cipher.decrypt(&nonce, contents.as_ref()).unwrap();
+    let plaintext = str::from_utf8(decrypted.as_slice()).unwrap();
+
+    let enc_name = String::from(filename) + ".unlocked";
+    let enc_path = Path::new(&enc_name);
+
+    // Open a file in write-only mode, returns `io::Result<File>`
+    let mut file = match File::create(&enc_path) {
+        Err(why) => panic!("couldn't create: {}", why),
+        Ok(file) => file,
+    };
+
+    // Write the `LOREM_IPSUM` string to `file`, returns `io::Result<()>`
+    match file.write_all(plaintext.as_ref()) {
+        Err(why) => panic!("couldn't write to: {}", why),
+        Ok(_) => (),
+    }
 }
 
 // let key = randombytes::randombytes(123);
