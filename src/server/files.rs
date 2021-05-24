@@ -3,15 +3,13 @@ use std::str::FromStr;
 
 use super::authentication::check_challenge;
 
-use crate::db::{
-    models::{File, NewFile},
-    repository::{
-        FileRepository, PostgrSQLFileRepository, PostgrSQLUserRepository, UserRepository,
-    },
+use crate::db::models::{File, NewFile};
+use crate::db::repository::{
+    FileRepository, PostgrSQLFileRepository, PostgrSQLUserRepository, UserRepository,
 };
 use crate::errors::FileError;
 
-pub fn get_my_files(username: &str, challenge: &[u8], tag: &[u8]) -> Vec<String> {
+pub fn get_files(username: &str, challenge: &[u8], tag: &[u8]) -> Vec<String> {
     if let Err(_) = check_challenge(username, challenge, tag) {
         return Vec::<String>::new();
     }
@@ -63,7 +61,7 @@ pub fn post_file(
         return Err(FileError::UploadFailed);
     }
 
-    let user_vault = String::from("files/vault/") + &user.username + "/";
+    let user_vault = String::from("files/vault/") + user.username.as_str() + "/";
 
     fs::rename(
         String::from("files/share/") + &filename,
@@ -94,7 +92,7 @@ pub fn get_file(
         return Err(FileError::DownloadFailed);
     }
 
-    let user_vault = String::from("files/vault/") + &user.username + "/";
+    let user_vault = String::from("files/vault/") + user.username.as_str() + "/";
     fs::copy(
         user_vault + filename,
         String::from("files/share/") + &filename,

@@ -1,7 +1,6 @@
 pub mod crypto;
 
 use std::fs;
-use std::path::Path;
 
 use crate::{errors::AuthError, server};
 
@@ -22,6 +21,7 @@ pub fn login(username: &str, passwd: &str) -> Result<(Vec<String>, Vec<u8>, Vec<
         challenge.as_slice(),
         chall_tag.as_slice(),
     );
+
     if let Err(_) = possible_session_token {
         return Err(AuthError::LoginError);
     }
@@ -29,7 +29,7 @@ pub fn login(username: &str, passwd: &str) -> Result<(Vec<String>, Vec<u8>, Vec<
     let session_token = possible_session_token.unwrap();
 
     let session_tag = crypto::sign_token(session_token.as_ref(), shared_secret.as_ref());
-    let files = server::files::get_my_files(username, session_token.as_ref(), session_tag.as_ref());
+    let files = server::files::get_files(username, session_token.as_ref(), session_tag.as_ref());
 
     // return the shared secret & session token
     Ok((files, shared_secret, session_token))
