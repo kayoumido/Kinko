@@ -53,7 +53,7 @@ fn main() {
 
     println!("Uploading a new file");
     if let Err(why) = client::upload_file(
-        "files/home/passwords.txt",
+        "files/home/liip.txt",
         username,
         secret.as_ref(),
         session_token.as_ref(),
