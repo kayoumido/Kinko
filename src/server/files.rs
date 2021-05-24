@@ -4,7 +4,7 @@ use std::str::FromStr;
 use super::authentication::check_challenge;
 
 use crate::db::{
-    models::NewFile,
+    models::{File, NewFile},
     repository::{
         FileRepository, PostgrSQLFileRepository, PostgrSQLUserRepository, UserRepository,
     },
@@ -73,4 +73,34 @@ pub fn post_file(
     .unwrap();
 
     Ok(())
+}
+
+pub fn get_file(
+    username: &str,
+    filename: &str,
+    challenge: &[u8],
+    tag: &[u8],
+) -> Result<File, FileError> {
+    if let Err(_) = check_challenge(username, challenge, tag) {
+        return Err(FileError::DownloadFailed);
+    }
+
+    let urepo = PostgrSQLUserRepository {};
+    let frepo = PostgrSQLFileRepository {};
+    let user = urepo.get_user(username).unwrap();
+
+    let file = frepo.get_file(user.id, filename);
+
+    if let Err(_) = file {
+        return Err(FileError::DownloadFailed);
+    }
+
+    let user_vault = String::from("files/vault/") + &user.username + "/";
+    fs::copy(
+        user_vault + filename,
+        String::from("files/share/") + &filename,
+    )
+    .unwrap();
+
+    Ok(file.unwrap())
 }

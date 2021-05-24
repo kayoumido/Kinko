@@ -38,7 +38,7 @@ impl UserRepository for PostgrSQLUserRepository {
 pub trait FileRepository {
     fn create_file(&self, file: &NewFile) -> Result<(), DBError>;
     fn get_user_files(&self, ownerid: i32) -> Result<Vec<File>, DBError>;
-    // fn get_user(&self, uname: &str) -> Result<User, DBError>;
+    fn get_file(&self, ownerid: i32, filename: &str) -> Result<File, DBError>;
 }
 
 pub struct PostgrSQLFileRepository {}
@@ -63,5 +63,17 @@ impl FileRepository for PostgrSQLFileRepository {
         }
 
         Ok(())
+    }
+
+    fn get_file(&self, ownerid: i32, filename: &str) -> Result<File, DBError> {
+        let conn = connection()?;
+        let res = files
+            .filter(owner_id.eq(ownerid).and(name.eq(filename)))
+            .first::<File>(&conn);
+        if let Err(_) = res {
+            return Err(DBError::NoFiles);
+        }
+
+        Ok(res.unwrap())
     }
 }
