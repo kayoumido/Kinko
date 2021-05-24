@@ -1,7 +1,8 @@
 create table files (
-    id integer not null primary key,
+    id serial primary key,
     name varchar not null,
     symmetric_key varchar not null,
+    nonce varchar not null,
     owner_id integer not null,
 
     constraint fk_ownership

@@ -3,6 +3,7 @@ table! {
         id -> Int4,
         name -> Varchar,
         symmetric_key -> Varchar,
+        nonce -> Varchar,
         owner_id -> Int4,
     }
 }

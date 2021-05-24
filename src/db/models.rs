@@ -1,7 +1,6 @@
 use super::schema::{files, users};
 
 #[derive(Queryable, Debug, AsChangeset, PartialEq)]
-// #[table_name = "users"]
 pub struct User {
     pub id: i32,
     pub username: String,
@@ -12,11 +11,11 @@ pub struct User {
 
 #[derive(Queryable, Debug, Associations)]
 #[belongs_to(User foreign_key = "owner_id")]
-// #[table_name = "files"]
 pub struct File {
     pub id: i32,
     pub name: String,
     pub symmetric_key: String,
+    pub nonce: String,
     pub owner_id: i32,
 }
 
@@ -34,5 +33,6 @@ pub struct NewUser<'a> {
 pub struct NewFile<'a> {
     pub name: &'a str,
     pub symmetric_key: &'a str,
+    pub nonce: &'a str,
     pub owner_id: i32,
 }
