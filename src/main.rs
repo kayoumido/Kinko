@@ -12,6 +12,7 @@ mod server;
 mod db;
 mod errors;
 
+use std::str;
 /*
     id: 1
     username: AliceXOXO
@@ -27,6 +28,7 @@ mod errors;
 fn main() {
     db::init();
     sodiumoxide::init().unwrap();
+
     let username = "AliceXOXO";
     let passwd = "1L0v3B0b$";
     let sk = base64::decode("GEJ3z7uSTOoqredKnm8t6ie/ptATOxhlHqCSGQO0dKE=").unwrap();
@@ -35,21 +37,43 @@ fn main() {
     )
     .unwrap();
 
-    let (_files, secret, session_token) = client::login(username, passwd).unwrap();
+    let (files, secret, session_token) = client::login(username, passwd).unwrap();
 
-    client::upload_file(
+    println!("Here are your files:");
+    for file in files {
+        let encrypted_name = base64::decode_config(file.name, base64::URL_SAFE).unwrap();
+        let encrypted_key = base64::decode(file.symmetric_key).unwrap();
+        let nonce = base64::decode(file.name_nonce).unwrap();
+        let key = client::crypto::decrypt_key(encrypted_key.as_ref(), sk.as_ref());
+        let name = client::crypto::_decrypt(encrypted_name.as_ref(), key.as_ref(), nonce.as_ref());
+        let name = str::from_utf8(name.as_ref()).unwrap();
+
+        println!("- {}", name);
+    }
+
+    println!("Uploading a new file");
+    if let Err(why) = client::upload_file(
         "files/home/passwords.txt",
         username,
         secret.as_ref(),
         session_token.as_ref(),
         pk.as_ref(),
-    );
+    ) {
+        println!("{}", why);
+    } else {
+        println!("Upload successful!");
+    }
 
-    client::download_file(
-        "passwords.txt.locked",
+    println!("Download a file");
+    if let Err(why) = client::download_file(
+        "Fo_ZakTJWBWP9GUgVnoVaqWOU4EIdDUoAThk_R8=",
         "AliceXOXO",
         secret.as_ref(),
         session_token.as_ref(),
         sk.as_ref(),
-    )
+    ) {
+        println!("{}", why);
+    } else {
+        println!("Download successful! Check your folders");
+    }
 }

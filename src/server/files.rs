@@ -1,5 +1,4 @@
 use std::fs;
-use std::str::FromStr;
 
 use super::authentication::check_challenge;
 
@@ -9,9 +8,9 @@ use crate::db::repository::{
 };
 use crate::errors::FileError;
 
-pub fn get_files(username: &str, challenge: &[u8], tag: &[u8]) -> Vec<String> {
+pub fn get_files(username: &str, challenge: &[u8], tag: &[u8]) -> Vec<File> {
     if let Err(_) = check_challenge(username, challenge, tag) {
-        return Vec::<String>::new();
+        return Vec::<File>::new();
     }
 
     let urepo = PostgrSQLUserRepository {};
@@ -21,15 +20,9 @@ pub fn get_files(username: &str, challenge: &[u8], tag: &[u8]) -> Vec<String> {
     let files = frepo.get_user_files(user.id);
 
     if let Err(_) = files {
-        return Vec::<String>::new();
+        return Vec::<File>::new();
     }
-    let files = files.unwrap();
-    let filenames: Vec<&str> = files.iter().map(|file| file.name.as_ref()).collect();
-
-    filenames
-        .iter()
-        .map(|f| String::from_str(*f).unwrap())
-        .collect()
+    files.unwrap()
 }
 
 pub fn post_file(
