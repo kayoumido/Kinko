@@ -15,7 +15,8 @@ pub struct File {
     pub id: i32,
     pub name: String,
     pub symmetric_key: String,
-    pub nonce: String,
+    pub content_nonce: String,
+    pub name_nonce: String,
     pub owner_id: i32,
 }
 
@@ -33,6 +34,7 @@ pub struct NewUser<'a> {
 pub struct NewFile<'a> {
     pub name: &'a str,
     pub symmetric_key: &'a str,
-    pub nonce: &'a str,
+    pub content_nonce: &'a str,
+    pub name_nonce: &'a str,
     pub owner_id: i32,
 }
