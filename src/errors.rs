@@ -2,6 +2,7 @@ use std::error;
 use std::fmt;
 use strum::EnumMessage;
 use strum_macros;
+
 #[derive(PartialEq, Debug, strum_macros::EnumMessage)]
 pub enum DBError {
     #[strum(message = "Failed getting db connection")]
@@ -51,6 +52,9 @@ impl error::Error for AuthError {
 pub enum FileError {
     #[strum(message = "File upload failed.")]
     UploadFailed,
+
+    #[strum(message = "File upload failed.")]
+    DownloadFailed,
 }
 
 impl fmt::Display for FileError {
