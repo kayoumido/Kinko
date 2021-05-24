@@ -45,23 +45,25 @@ pub fn upload_file(
     let (encrypted_file_name, file_secret, content_nonce, name_nonce) =
         crypto::encrypt_file(filename);
 
-    let enc_file: &str = &(String::from("files/share/") + &encrypted_file_name);
-    let enc_secret = crypto::encrypt_key(&file_secret, pk);
+    let key = crypto::encrypt_key(&file_secret, pk);
     let session_tag = crypto::sign_token(session_token, shared_secret);
 
-    fs::rename(String::from("files/home/") + &encrypted_file_name, enc_file).unwrap();
+    let encrypted_file_to = String::from("files/share/") + encrypted_file_name.as_str();
+    let encrypted_file_from = String::from("files/home/") + encrypted_file_name.as_str();
 
-    let enc_filename = Path::new(&enc_file).file_name().unwrap().to_str().unwrap();
+    fs::rename(encrypted_file_from, encrypted_file_to).unwrap();
 
-    if let Err(_) = server::files::post_file(
+    let res = server::files::post_file(
         username,
-        enc_filename,
-        base64::encode(enc_secret).as_str(),
+        encrypted_file_name.as_str(),
+        base64::encode(key).as_str(),
         base64::encode(content_nonce).as_str(),
         base64::encode(name_nonce).as_str(),
         session_token,
         session_tag.as_ref(),
-    ) {}
+    );
+
+    if let Err(_) = res {}
 }
 
 pub fn download_file(
