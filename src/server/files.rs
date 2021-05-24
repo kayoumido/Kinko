@@ -43,7 +43,6 @@ pub fn post_file(
     tag: &[u8],
 ) -> Result<(), FileError> {
     if let Err(_) = check_challenge(username, challenge, tag) {
-        println!("challenge failed");
         return Err(FileError::UploadFailed);
     }
 
@@ -62,13 +61,10 @@ pub fn post_file(
     };
 
     if let Err(_) = frepo.create_file(&new_file) {
-        println!("file create failed");
         return Err(FileError::UploadFailed);
     }
 
     let user_vault = String::from("files/vault/") + &user.username + "/";
-
-    println!("{}", user_vault);
 
     fs::rename(
         String::from("files/share/") + &filename,
