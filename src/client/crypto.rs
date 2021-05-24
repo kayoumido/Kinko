@@ -155,7 +155,7 @@ fn _encrypt(plaintext: &[u8], key: &[u8]) -> (Vec<u8>, Vec<u8>) {
     (ciphertext, n)
 }
 
-fn _decrypt(ciphertext: &[u8], key: &[u8], nonce: &[u8]) -> Vec<u8> {
+pub fn _decrypt(ciphertext: &[u8], key: &[u8], nonce: &[u8]) -> Vec<u8> {
     // convert key & nonce to a GenericArray
     let sym_key = GenericArray::clone_from_slice(key);
     let nonce = GenericArray::from_slice(nonce);

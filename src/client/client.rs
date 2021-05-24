@@ -2,9 +2,11 @@ pub mod crypto;
 
 use std::fs;
 
-use crate::{errors::AuthError, server};
+use crate::db::models::File;
+use crate::errors::{AuthError, FileError};
+use crate::server;
 
-pub fn login(username: &str, passwd: &str) -> Result<(Vec<String>, Vec<u8>, Vec<u8>), AuthError> {
+pub fn login(username: &str, passwd: &str) -> Result<(Vec<File>, Vec<u8>, Vec<u8>), AuthError> {
     let possible_salt_and_chall = server::authentication::get_salt_challenge(username);
     if let Err(_) = possible_salt_and_chall {
         return Err(AuthError::LoginError);
@@ -41,11 +43,11 @@ pub fn upload_file(
     shared_secret: &[u8],
     session_token: &[u8],
     pk: &[u8],
-) {
+) -> Result<(), FileError> {
     let (encrypted_file_name, file_secret, content_nonce, name_nonce) =
         crypto::encrypt_file(filename);
 
-    let key = crypto::encrypt_key(&file_secret, pk);
+    let key = crypto::encrypt_key(file_secret.as_ref(), pk);
     let session_tag = crypto::sign_token(session_token, shared_secret);
 
     let encrypted_file_to = String::from("files/share/") + encrypted_file_name.as_str();
@@ -63,7 +65,11 @@ pub fn upload_file(
         session_tag.as_ref(),
     );
 
-    if let Err(_) = res {}
+    if let Err(why) = res {
+        Err(why)
+    } else {
+        Ok(())
+    }
 }
 
 pub fn download_file(
@@ -72,7 +78,7 @@ pub fn download_file(
     shared_secret: &[u8],
     session_token: &[u8],
     sk: &[u8],
-) {
+) -> Result<(), FileError> {
     let session_tag = crypto::sign_token(session_token, shared_secret);
 
     let file = server::files::get_file(username, filename, session_token, session_tag.as_ref());
@@ -103,4 +109,6 @@ pub fn download_file(
     let _r = fs::remove_file(encrypted_file_from);
 
     fs::rename(decrypted_file_from, decrypted_file_to).unwrap();
+
+    Ok(())
 }
