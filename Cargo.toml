@@ -14,3 +14,8 @@ r2d2 = "0.8"
 lazy_static = "1.4.0"
 strum = "0.20.0"
 strum_macros = "0.20"
+base64 = "0.13.0"
+aes-gcm = "0.9.1"
+rand_core = { version = "0.6.2", features = ["getrandom"] } 
+getrandom = "0.2.3"
+ecies = "0.2.1"
