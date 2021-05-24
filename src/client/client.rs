@@ -42,19 +42,19 @@ pub fn upload_file(
     session_token: &[u8],
     pk: &[u8],
 ) {
-    let (enc_name, file_secret, nonce) = crypto::encrypt_file(filename);
+    let (enc_filename, file_secret, nonce) = crypto::encrypt_file(filename);
 
-    let enc_file: &str = &(String::from("files/share/") + &enc_name);
+    let enc_file: &str = &(String::from("files/share/") + &enc_filename);
     let enc_secret = crypto::encrypt_key(&file_secret, pk);
     let session_tag = crypto::sign_token(session_token, shared_secret);
 
-    fs::rename(String::from("files/home/") + &enc_name, enc_file).unwrap();
+    fs::rename(String::from("files/home/") + &enc_filename, enc_file).unwrap();
 
-    let enc_name = Path::new(&enc_file).file_name().unwrap().to_str().unwrap();
+    let enc_filename = Path::new(&enc_file).file_name().unwrap().to_str().unwrap();
 
     if let Err(_) = server::files::post_file(
         username,
-        enc_name,
+        enc_filename,
         enc_secret.as_ref(),
         nonce.as_ref(),
         session_token,
@@ -62,4 +62,29 @@ pub fn upload_file(
     ) {}
 }
 
-fn download_file(filename: &str, username: &str, secret: &[u8], session_token: &[u8]) {}
+pub fn download_file(
+    filename: &str,
+    username: &str,
+    shared_secret: &[u8],
+    session_token: &[u8],
+    sk: &[u8],
+) {
+    let session_tag = crypto::sign_token(session_token, shared_secret);
+
+    let file = server::files::get_file(username, filename, session_token, session_tag.as_ref());
+
+    if let Err(_) = file {}
+    let file = file.unwrap();
+
+    let enc_file_secret = base64::decode(file.symmetric_key).unwrap();
+    let file_nonce = base64::decode(file.nonce).unwrap();
+    let file_secret = crypto::decrypt_key(enc_file_secret.as_ref(), sk);
+
+    let enc_file_path: &str = &(String::from("files/share/") + filename);
+    let dec_file_path = String::from("files/home/") + filename + ".unlocked";
+    crypto::decrypt_file(&enc_file_path, file_secret.as_ref(), file_nonce.as_ref());
+
+    let _r = fs::remove_file(enc_file_path);
+
+    fs::rename(enc_file_path.to_string() + ".unlocked", dec_file_path).unwrap();
+}
