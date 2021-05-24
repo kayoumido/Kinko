@@ -2,9 +2,10 @@ use super::connection;
 use super::models::*;
 use super::schema::files::dsl::*;
 use super::schema::users::dsl::*;
-use diesel::prelude::*;
 
 use crate::errors::DBError;
+
+use diesel::{insert_into, prelude::*};
 
 pub trait UserRepository {
     /// Try and get a user from the storage
@@ -35,7 +36,7 @@ impl UserRepository for PostgrSQLUserRepository {
 }
 
 pub trait FileRepository {
-    // fn create_file(&self, file: &NewFile) -> Result<User, DBError>;
+    fn create_file(&self, file: &NewFile) -> Result<(), DBError>;
     fn get_user_files(&self, ownerid: i32) -> Result<Vec<File>, DBError>;
     // fn get_user(&self, uname: &str) -> Result<User, DBError>;
 }
@@ -53,5 +54,14 @@ impl FileRepository for PostgrSQLFileRepository {
         } else {
             Ok(res.unwrap())
         }
+    }
+
+    fn create_file(&self, file: &NewFile) -> Result<(), DBError> {
+        let conn = connection()?;
+        if let Err(_) = insert_into(files).values(file).execute(&conn) {
+            return Err(DBError::FileCreationFailed);
+        }
+
+        Ok(())
     }
 }

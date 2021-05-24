@@ -12,6 +12,9 @@ pub enum DBError {
 
     #[strum(message = "no files found")]
     NoFiles,
+
+    #[strum(message = "Failed to insert new file")]
+    FileCreationFailed,
 }
 
 impl fmt::Display for DBError {
@@ -39,6 +42,24 @@ impl fmt::Display for AuthError {
 }
 
 impl error::Error for AuthError {
+    fn description(&self) -> &str {
+        self.get_message().unwrap()
+    }
+}
+
+#[derive(PartialEq, Debug, strum_macros::EnumMessage)]
+pub enum FileError {
+    #[strum(message = "File upload failed.")]
+    UploadFailed,
+}
+
+impl fmt::Display for FileError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.get_message().unwrap())
+    }
+}
+
+impl error::Error for FileError {
     fn description(&self) -> &str {
         self.get_message().unwrap()
     }
