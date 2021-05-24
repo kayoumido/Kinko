@@ -15,5 +15,5 @@ services:
     #   APP_DB_PASS: IL0v34lIc3
     #   APP_DB_NAME: kinko
     volumes:
-      - ./db_data:/var/lib/postgresql/data\
+      - ./db_data:/var/lib/postgresql/data/
       - ./setup.sql:/docker-entrypoint-initdb.d/setup.sql

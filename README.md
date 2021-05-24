@@ -1,42 +1,62 @@
-# Kinko
-
-> CAA - Lab 02: Encrypted vault
->
-> Author: Doran Kayoumi
-> Teacher: Alexandre Duc
-> Assistant. Nathan Séville
->
-> Note: This project was done as a laboratory for the CAA class at the HEIG-VD
-
-
+# CAA - Lab 02: Encrypted vault
 
 <p align="center">
 <img src="docs/cover.jpg" width="500">
 </p>
-<p align="center">
-  <img src="https://forthebadge.com/images/badges/built-with-love.svg" alt="version">
-  <img src="https://forthebadge.com/images/badges/made-with-rust.svg" alt="platform">
-  <img src="https://forthebadge.com/images/badges/makes-people-smile.svg" alt="platform">
-  <img src="https://forthebadge.com/images/badges/built-by-hipsters.svg" alt="platform">
-</p>
 
-## Legend
+> Author: Doran Kayoumi
+> Teacher: Alexandre Duc
+> Assistant. Nathan Séville
+
+## About Kinkō.
+
+`Kinkō` was developed as a laboratory at the [HEIG-VD](https://heig-vd.ch/) in the academic year of 2020-2021. The purpose of the laboratory is to implement an online vault to store encrypted files.
+
+## Getting started
+
+**Prerequisites**	
+
+- [Docker](https://docs.docker.com/install/) (v19.03.8-cd)
+- [Docker-compose](https://docs.docker.com/compose/install/) (v1.25.4)
+
+**Start Kinko**
+
+First thing you need to do, is startup the database.
+
+```bash
+$ docker-compose up -d
+```
+
+Now you can start the prototype:
+
+```bash
+$ cargo run
+```
+
+Since this is only a prototype, it will simulate the `Kinkō` architecture and perform the following:
+
+* Authentication
+* Upload a file
+* Download a file
+
+
+## Architecture
+
+`Kinkō`  follows a **Client-Server** model with a (imaginary) TLS 1.2/1.3 connection between them.
+
+To make sure that the server knows nothing about the data the users upload to the vault, all of the key generation and file encryption/decryption will be done client side. The only cryptography the server will be doing is to validate the tags sent by the client.
+
+### Legend
 
 Here's the legend for all the following diagrams explaining the architecture.
 
 <p align="center">
-<img src="docs/legend.png" width="500">
+<img src="docs/legend.png" width="350">
 </p>
-
-## Architecture
-
-The architecture of `Kinko`  follows a **Client-Server** model with a (imaginary) 1.2/1.3 connection between them.
-
-To make sure that the server knows nothing about the data the users upload to the vault, all of the key generation and file encryption/decryption will be done client side. The only cryptography the server will be doing is to validate the tags sent by the client.
 
 ### Client-Server communication
 
-All of the requests made between the client and the server will have attached a tag of a session token (see Authentication chapter for more info on the token). The tag will be a **HMAC** of the session token using a **shared secret** as the key.
+All of the requests made between the client and the server will have attached a tag of a session token (see [Authentication](#authentication) for more info). The tag will be a **HMAC** of the session token using a **shared secret** as the key.
 
 The shared secret is a derivation of the user' password done with **argon2id**.
 
@@ -65,8 +85,9 @@ The file encryption will be done using **AES-GCM** and to guarantee longterm sec
 > Note: A new key is generated for each new file being uploaded
 
 <p align="center">
-<img src="docs/file_encryption.png" width="500">
+<img src="docs/file_encryption.png" width="400">
 </p>
+
 
 > (1) File encryption
 > (2) Key encryption
@@ -86,8 +107,9 @@ For the download, the user gives the name of the file she/he wants and the serve
 The decryption is pretty straight forward. The symmetric key is decrypted using the users private key and then the file is decrypted using the decrypted symmetric key.
 
 <p align="center">
-<img src="docs/file_decryption.png" width="500">
+<img src="docs/file_decryption.png" width="400">
 </p>
+
 
 > (1) Key decryption
 > (2) File encryption
